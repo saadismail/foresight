@@ -3,7 +3,7 @@ type: task
 title: Change env vars, settings, secrets or live server / container config
 tags: [cross-cutting, env, settings, secrets, config, server, nginx, systemd, postgres, ssh, vm]
 resource: env-server-config
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Task · Change env vars, settings, secrets or live server / container config
@@ -22,3 +22,4 @@ predicts (incidents while doing this task):
 - [FS-42](../patterns/fs-42.md) Third-party system semantics not honored (2)
 - [FS-14](../patterns/fs-14.md) Failure cause attributed without a controlled comparison (2)
 - [FS-102](../patterns/fs-102.md) Performance lever chosen or credited without profiling, mechanism check or a controlled quiet-host A/B (2)
+- [FS-07](../patterns/fs-07.md) Parallel code paths for one operation diverge (2)

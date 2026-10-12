@@ -3,7 +3,7 @@ type: task
 title: Add or upgrade a dependency, or change dev tooling, hooks or agent memory
 tags: [cross-cutting, dependency, upgrade, package, requirements, npm, pip, toolchain, hook, tooling, interpreter]
 resource: tooling-dependency
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Task · Add or upgrade a dependency, or change dev tooling, hooks or agent memory

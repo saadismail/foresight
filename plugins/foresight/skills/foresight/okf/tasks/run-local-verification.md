@@ -3,7 +3,7 @@ type: task
 title: Run the app, dev server, tests or e2e stack locally to verify a change
 tags: [cross-cutting, local, dev, server, verify, run, e2e, stack, port, database, restart]
 resource: run-local-verification
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Task · Run the app, dev server, tests or e2e stack locally to verify a change

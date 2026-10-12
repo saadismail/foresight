@@ -3,7 +3,7 @@ type: task
 title: Merge, rebase or promote a branch (integration branches, conflicts, PRs)
 tags: [cross-cutting, merge, rebase, promote, promotion, pr, conflict, staging, main, cherry-pick, revert]
 resource: merge-promote-branch
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Task · Merge, rebase or promote a branch (integration branches, conflicts, PRs)

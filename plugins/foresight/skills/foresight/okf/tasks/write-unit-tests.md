@@ -3,7 +3,7 @@ type: task
 title: Write or change unit / integration tests (pytest, vitest)
 tags: [cross-cutting, test, pytest, vitest, unit, fixture, mock, assert, coverage, tdd, factory]
 resource: write-unit-tests
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Task · Write or change unit / integration tests (pytest, vitest)
@@ -13,7 +13,7 @@ Backend and FE unit/integration tests: fixtures that reach the branch under test
 in-domain: [cross-cutting](../domains/cross-cutting.md)
 
 predicts (incidents while doing this task):
-- [FS-04](../patterns/fs-04.md) Tests pass without proving the requirement (30)
+- [FS-04](../patterns/fs-04.md) Tests pass without proving the requirement (32)
 - [FS-33](../patterns/fs-33.md) Test double or harness silently diverges from the real runtime (13)
 - [FS-34](../patterns/fs-34.md) Nondeterministic test timing and ordering (9)
 - [FS-06](../patterns/fs-06.md) Per-row queries and unbounded fetches invisible at seed scale (4)

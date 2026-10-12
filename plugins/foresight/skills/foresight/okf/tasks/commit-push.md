@@ -3,7 +3,7 @@ type: task
 title: Commit and push changes (hooks, staged files, push automation)
 tags: [cross-cutting, commit, push, hook, pre-commit, commit-msg, stage, git, add, automerge, branch]
 resource: commit-push
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Task · Commit and push changes (hooks, staged files, push automation)

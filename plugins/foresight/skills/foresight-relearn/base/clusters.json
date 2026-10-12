@@ -104,7 +104,8 @@
     "a new branch beside an existing path, a fixpoint while-changed loop, a resolver handling several AST shapes (f-string and concat), or a benchmark case labelled with a dimension (enum value, reorder) the pipeline may not capture",
     "a plan that defers running e2e specs to a final lane, or parallel lanes merging into one integration branch",
     "a dispatch that lists required behaviours or negative tests (audit fields, soft-delete, tenancy, sibling project, bad id) in prose",
-    "a test.skip conditioned on seed data, or a smoke test whose only assertions are URL shape and a global object"
+    "a test.skip conditioned on seed data, or a smoke test whose only assertions are URL shape and a global object",
+    "the same rule text duplicated in a doc or prompt and in a server constant"
    ],
    "preventive_checks": [
     "Build a criterion/risk -> test table before declaring done; one test per call site and per view variant, including empty/loading/error/keyboard states",
@@ -119,7 +120,8 @@
     "Mutation-test the new code before done: force the branch condition (if False:), make the loop single-pass, swap before/after fixtures or remove a different enum value, and confirm some test fails; read back written artifacts and assert on parsed content, not path or existence",
     "Each parallel lane runs its own e2e specs and scoped tests on its own branch before merging into the integration branch; never defer all e2e execution to a final lane",
     "Turn every behaviour a dispatch lists into named test stubs the implementer must fill, and check the names exist before accepting the task",
-    "Replace data-dependent test.skip with a fixture that creates the case; count a skipped test as missing coverage"
+    "Replace data-dependent test.skip with a fixture that creates the case; count a skipped test as missing coverage",
+    "Assert every copy of a duplicated rule (or derive one from the other) and mutation-probe by rewording each copy"
    ],
    "portable": true,
    "exemplars": []
@@ -142,7 +144,8 @@
     "a reviewer or a pipelined next-task implementer dispatched with test-run permission into a lane whose implementer is still running pytest on the same per-lane test DB",
     "parallel lanes inheriting one session scratchpad and writing helper scripts or result files with identical names",
     "a brief that isolates ports and DBs but says nothing about scratch dirs or pattern kills; a runner that backgrounds servers with a blocking wait and no signal trap",
-    "about to fan out parallel worktree lanes, each with its own node_modules, test DBs and Playwright output, or many idle worktrees already exist"
+    "about to fan out parallel worktree lanes, each with its own node_modules, test DBs and Playwright output, or many idle worktrees already exist",
+    "a lane wrapper passes the test command through to an agent that may drop the -n / --workers cap stated in its brief"
    ],
    "preventive_checks": [
     "Give every parallel workstream its own PGDATABASE_TEST / e2e DB, explicit free ports and Redis prefix before dispatch",
@@ -157,7 +160,8 @@
     "Give each lane its own scratch subdir (scratchpad/lane-X/) in the brief and have scripts assert their own lane id and port before running",
     "Brief every lane with an explicit ban on pkill -f / killall by script name; kill only PIDs recorded in the lane's own pidfile",
     "Write trap-based teardown (TERM, grace, KILL) with wait $pid from the start and test it by interrupting a run and checking ports are freed",
-    "Run df -h before fan-out and budget about 2 GB per worktree; between waves delete merged lanes' worktrees and node_modules and drop their test DBs"
+    "Run df -h before fan-out and budget about 2 GB per worktree; between waves delete merged lanes' worktrees and node_modules and drop their test DBs",
+    "Enforce per-lane worker caps in the launcher's environment or wrapper (PYTEST_ADDOPTS with -n, a Playwright workers variable), not only as brief text, and refuse runs that exceed them"
    ],
    "portable": true,
    "exemplars": []
@@ -208,7 +212,8 @@
     "adding a second resolver for the same binding kind next to one that already handles scope/shadowing",
     "a new subtype, hold/lock state or rollout flag that must be protected across a module whose write routes (callback, retry, upload, generic CRUD, bot endpoints, service callers) all reach the same downstream path",
     "a bulk move/visibility/delete endpoint added next to single-item actions that write audit entries",
-    "a test harness gains a new execution mode (per-worker DBs, shards, pooled seeding) while helpers resolve their own DB URL, interpreter or seed flags"
+    "a test harness gains a new execution mode (per-worker DBs, shards, pooled seeding) while helpers resolve their own DB URL, interpreter or seed flags",
+    "a scrub, profile or sandbox applied where an artifact or CLI argv is first built, while other writers or launchers (resume and follow-up turns, group copies) build their own"
    ],
    "preventive_checks": [
     "Grep every path that creates or mutates the model (views, bulk, seed, import, duplicate, commands) and route them through the same service method",
@@ -220,7 +225,8 @@
     "When adding a sibling resolver, reuse the existing one's scope/shadow guard and test the shadowed case on both",
     "Enumerate every write entry point that reaches the guarded state (grep URL routes and service callers), put the guard at the shared service/write entry rather than per endpoint or at a later transition, and add one test per entry point",
     "Test that each bulk action writes one audit row per touched item, exactly like the single-item path",
-    "Resolve DB name, interpreter and seed routing in one shared harness helper used by every fixture and subprocess, and smoke every mode (1 worker, N workers, pool) asserting the DB each worker actually used"
+    "Resolve DB name, interpreter and seed routing in one shared harness helper used by every fixture and subprocess, and smoke every mode (1 worker, N workers, pool) asserting the DB each worker actually used",
+    "Grep every writer of the artifact and every argv builder, route them through the one function that applies the scrub or profile, and test each launcher's output"
    ],
    "portable": true,
    "exemplars": []
@@ -370,7 +376,8 @@
     "a Node entry point calls dotenv.config() with an implicit relative path and the repo holds more than one .env file",
     "a host migration rebuilds a venv from requirements files on a box whose old venv had hand-installed packages; several env files (admin.env, portal.env) define the same DB credential",
     "a deploy step restores a built entrypoint from git (git checkout -- dist/index.html) instead of rebuilding, on a host where nginx serves dist/ directly; the step comes from a remembered 'standard flow' of an earlier session",
-    "a provider API key (SendGrid, SMTP2GO) is rotated or first set in prod and judged working because it authenticates"
+    "a provider API key (SendGrid, SMTP2GO) is rotated or first set in prod and judged working because it authenticates",
+    "periodic or scheduled work (a Celery beat entry, a cron line) added for hosts whose deploy runs only web units and systemd timers (recurs: a scheduled sync and later an alert were both wired to a scheduler no host runs)"
    ],
    "preventive_checks": [
     "For every new route/port/unit/env var, confirm the deploy script installs it and curl the real public path after deploy",
@@ -384,7 +391,8 @@
     "Log the resolved .env path and injected-variable count at boot, and confirm the process cwd before editing a live server's env",
     "Before a host migration diff pip freeze on the old host against every requirements file; confirm which env file the running unit loads before provisioning a DB role, then smoke-test the real end-to-end login",
     "Rebuild dist/ as part of the deploy, never git checkout build output, then fetch / and every asset hash it references and require 200",
-    "After rotating a provider key, fire one real call of the exact operation (send a test email) and read the key's scope list from the provider's key-info endpoint; alert on send failures rather than only logging them"
+    "After rotating a provider key, fire one real call of the exact operation (send a test email) and read the key's scope list from the provider's key-info endpoint; alert on send failures rather than only logging them",
+    "Before wiring periodic work, read which scheduler the target hosts actually run (systemctl list-timers, the deploy's unit files) and register the job there; a test or deploy check asserts that scheduler invokes the entrypoint"
    ],
    "portable": true,
    "exemplars": []
@@ -535,7 +543,9 @@
     "the task prompt already gives the absolute path of the skill/context file, yet the first command is a find / or a relative path (the agent's skills directory) inside a per-run sandbox whose cwd differs from the usual checkout (recurs across parallel runs of one task, each burning the full tool timeout)",
     "a command line interpolates a string variable holding several flags ($SSHO, $OPTS) and runs under zsh, the macOS default shell",
     "an unquoted *, ? or [..] in a zsh command (grep --include=*.py, ls dir/*, a glob over a maybe-empty dir): zsh NOMATCH aborts the whole command instead of passing the literal through (recurs: 5x in one session)",
-    "a quoted glob handed to a program that opens paths literally (node fs, a custom script); a verification probe that regex-scrapes a port out of free-form argv/log text"
+    "a quoted glob handed to a program that opens paths literally (node fs, a custom script); a verification probe that regex-scrapes a port out of free-form argv/log text",
+    "a regex filter (git log --grep, grep -E) using \\b or another PCRE-only escape; a reset --soft, squash or split onto a base branch tip that keeps moving; a desktop-managed shared service relaunched with open -a",
+    "supervisor code classifies a child process's run (stopped, failed, done) from its exit code after signalling it"
    ],
    "preventive_checks": [
     "Use absolute paths and git -C <worktree>; never rely on the persisted cwd",
@@ -551,7 +561,9 @@
     "Hold multi-flag options in an array (opts=(-o A=b -o C=d)) and pass them to ssh with quoted array expansion of all elements, or inline them; never an unquoted string variable",
     "Quote every glob passed as an argument ('--include=*.py'), prefer rg -g, and use the (N) qualifier or setopt nullglob before listing maybe-empty paths",
     "Never type `timeout` on this host: use the Bash tool's own timeout parameter or the runner's --timeout, and check ${pipestatus} rather than $? after a pipe",
-    "Have servers print one machine-readable line (LISTENING <port>) or pass the port explicitly; glob inside scripts rather than relying on shell expansion"
+    "Have servers print one machine-readable line (LISTENING <port>) or pass the port explicitly; glob inside scripts rather than relying on shell expansion",
+    "Prove a search filter on a known-positive input before trusting a no-match (-P or -w instead of \\b in ERE); split or squash against git merge-base HEAD origin/<base> and check git diff origin/<base>...HEAD is unchanged; after relaunching a shared local service poll its health (docker info, pg_isready) and kill leftover helper PIDs if the relaunch did nothing",
+    "Record the stop reason before signalling a child process and classify the outcome from that record; test children that exit 0 and non-zero after SIGINT"
    ],
    "portable": true,
    "exemplars": []
@@ -747,7 +759,8 @@
     "fixtures never contain a NULL, zero, negative, net-zero or sentinel row: a nullable boolean filtered with field=False, a nullable FK dereferenced on legacy data, zero-item entities, a sentinel shared by many rows, an as-of date for a cumulative figure",
     "a feed selector maps over child rows (steps) that share a parent (contact); a 'set once, applies broadly' value (reminder due date) stored on one child row",
     "tiered rates (day/week/month) priced as the finest tier times a count",
-    "`if e.response:` / `if resp:` on a requests.Response (falsy for any status >= 400) inside an error handler or log statement (recurs even though 'is not None' is listed below)"
+    "`if e.response:` / `if resp:` on a requests.Response (falsy for any status >= 400) inside an error handler or log statement (recurs even though 'is not None' is listed below)",
+    "value-based redaction or replace-by-value over a bundle that can hold very short values (1-3 characters)"
    ],
    "preventive_checks": [
     "Add explicit tests for empty, zero, one, null/absent, max-length and cross-timezone inputs",
@@ -757,7 +770,8 @@
     "Use exclude(field=True) for nullable booleans; test legacy rows with null FKs and all-empty collections; build report skeletons from the union of per-period rows; compute cumulative adjustments as of the entry's own date",
     "Test a parent with N>1 children: exactly one card, and the value survives completing the first child",
     "Write table-driven tests at every tier boundary (7 and 30 days, remainders) against the published rate card",
-    "Add a test that a 4xx error path logs the provider's real response body"
+    "Add a test that a 4xx error path logs the provider's real response body",
+    "Redact by secret-marked key with a minimum value length, and test with a 1-character value"
    ],
    "portable": true,
    "exemplars": []
@@ -803,7 +817,8 @@
     "an e2e or preview server falls back to an alternate port because the default is taken",
     "a stdlib urllib client on a python.org macOS build; writing an absolute machine path into a committed settings file; staging a restore file for a service account under a mode-700 home or tmp dir",
     "a skill or pipeline helper imports an optional module (fitz/PyMuPDF, numpy, pyzbar) or shells out to a renderer chain (pdftoppm, mutool, magick/convert) or a native lib (zbar), and runs in a fresh per-run sandbox or parallel benchmark worktree (recurs: every parallel sandbox rediscovers the same missing module on its first action even though this trigger was listed)",
-    "building a redirect Location or absolute URL from the request path/host in an app served behind a reverse proxy with a path prefix"
+    "building a redirect Location or absolute URL from the request path/host in an app served behind a reverse proxy with a path prefix",
+    "new syntax or stdlib API (backslashes or reused quotes inside f-string expressions, match, newer typing features) in code that also runs on hosts with an older supported interpreter"
    ],
    "preventive_checks": [
     "Verify reachability from inside the real runtime (curl from the container or systemd unit), not from your shell",
@@ -817,7 +832,8 @@
     "Check a file's git tracked-ness before writing machine-specific values and use the .local override; stage files for a service account with install -o <svc> and check sudo -u <svc> test -r <path> first",
     "Probe the sandbox once before the first step that needs it (python -c 'import fitz, numpy'; command -v pdftoppm mutool magick; decode a trivial barcode image to prove the zbar dylib loads), record the working choice, and route every later call to it",
     "Make helpers import optional dependencies inside try/except and fall straight through to the next working renderer or a Pillow/stdlib-only path, and bake native libs (poppler, zbar) into the sandbox image instead of installing them mid-task",
-    "Build public URLs from a configured public base URL (or trusted forwarded headers) and curl the public host to assert the Location header before go-live"
+    "Build public URLs from a configured public base URL (or trusted forwarded headers) and curl the public host to assert the Location header before go-live",
+    "Set the linter/compiler target to the minimum supported runtime (ruff target-version, tsconfig target) and compile or run the tests under that floor interpreter in CI"
    ],
    "portable": true,
    "exemplars": []
@@ -1039,7 +1055,8 @@
     "a serializer inlines a Prefetch of a soft-deletable model in a payload that an offline-sync pull persists to devices",
     "a scoping helper, count, aggregate, retry-eligibility check or service method that reaches a row whose PARENT (project, document, page, ticket) is soft-deletable",
     "a tenancy resolver or helper that uses all_objects, or a service that accepts model instances resolved by another caller (bot approve path)",
-    "a decision/resolution workflow whose every option dereferences user-deletable content, or a new dependent table under an existing unlink/delete path"
+    "a decision/resolution workflow whose every option dereferences user-deletable content, or a new dependent table under an existing unlink/delete path",
+    "an automated handoff or reassignment to a stored person (reporter, owner, creator) who may have left the workspace since"
    ],
    "preventive_checks": [
     "Test soft-delete then re-create with the same key; look up all_objects by natural key and revive before create",
@@ -1050,7 +1067,8 @@
     "Filter deleted_at in every Prefetch/inline queryset of a soft-deletable model and add a sync test that a soft-deleted child disappears on the other device",
     "Lane 0: write a parent-chain table of every entity and its soft-deletable ancestors (e.g. project -> document -> page -> section; project -> ticket -> link) with the filter each query and aggregate must add (page__is_deleted=False, project__deleted_at__isnull=True); every brief cites it",
     "Test every aggregate, scoping helper and eligibility check with a soft-deleted PARENT (not only a soft-deleted row) and assert exclusion; services re-check liveness of passed instances and their ancestors",
-    "Give every decision that dereferences deletable content a fallback resolution, and extend the existing delete/unlink path whenever a dependent table is added"
+    "Give every decision that dereferences deletable content a fallback resolution, and extend the existing delete/unlink path whenever a dependent table is added",
+    "Test each automated assignment with a departed member and decide the fallback (skip, reassign, escalate) instead of letting a validation error roll the transition back"
    ],
    "portable": true,
    "exemplars": []
@@ -1353,7 +1371,8 @@
     "a cleanup is verified by searching for the exact string or anomaly signature named in the ticket",
     "a cross-cutting feature (file tracking, audit) wired to the first model found carrying the field",
     "a stored-file URL field can hold several URI schemes (s3://, gs://, https) and presigning is wired for only one; the field is rendered as an href in more than one component",
-    "an exclude/ignore list names one build-output dir (.next) in a repo that also holds suffixed variants (.next-live, .next-e2e, .next-verify)"
+    "an exclude/ignore list names one build-output dir (.next) in a repo that also holds suffixed variants (.next-live, .next-e2e, .next-verify)",
+    "comparing file paths that come from different producers (absolute vs repo-relative, ./ prefixes)"
    ],
    "preventive_checks": [
     "Grep the schema for every FK/M2M/through relation linking the two models and every model carrying the field type; cover and test each path",
@@ -1362,7 +1381,8 @@
     "Verify cleanups with a broader case-insensitive/pattern search and check the sibling signature (null FK vs detached FK) before declaring done",
     "Enumerate every link builder that targets a guarded route and test each param variant",
     "Contract-test that every URL field in API responses starts with https:// for each configured storage backend, and grep every component that renders the field",
-    "Exclude by glob (.next*), then du -sh the staged context and compare it with the source size before shipping"
+    "Exclude by glob (.next*), then du -sh the staged context and compare it with the source size before shipping",
+    "Normalize both sides to resolved repo-relative paths before comparing, and test absolute, ./-prefixed and relative inputs"
    ],
    "portable": true,
    "exemplars": []
@@ -2087,7 +2107,8 @@
     "a control's enabled/disabled state depends on an enum while the chip/badge mapping was written earlier for fewer values",
     "reusing an existing enum-to-label map from another page for a new design that specifies its own vocabulary",
     "a shared failure/retry component reused for a second action but exposing a single retry callback",
-    "a new stage, document kind or job variant handled by an existing generic watchdog, stale-flag rule, label helper or recovery predicate"
+    "a new stage, document kind or job variant handled by an existing generic watchdog, stale-flag rule, label helper or recovery predicate",
+    "an idle, drain or availability check that lists 'active' run statuses explicitly while another feature adds a non-terminal status (woken, queued)"
    ],
    "preventive_checks": [
     "List every value of the enum and write a state x action matrix (visible, enabled, which transition) before editing a gate; add one test per branch",
@@ -2391,12 +2412,14 @@
    "trigger_signals": [
     "a bot/webhook callback endpoint or async job completion that writes shared rows and can arrive late, twice or after a retry",
     "a versioned aggregate or review baseline written from data captured at dispatch time",
-    "several subsystems (watchdog, budget, bot failure, user hold) writing one status or reason field"
+    "several subsystems (watchdog, budget, bot failure, user hold) writing one status or reason field",
+    "a locally persisted draft restored over a field other users can save, or a tracker fed by both launch and resume events"
    ],
    "preventive_checks": [
     "Capture a supersession token (job id, version, content hash) at dispatch; at apply time re-read the entity under a row lock and drop the result if status, version or hash no longer matches",
     "Define a precedence order for shared status/reason slots and only overwrite a lower-precedence value",
-    "Test late, duplicate and out-of-order callbacks, and a completion arriving after a newer job was dispatched, asserting the newer state survives"
+    "Test late, duplicate and out-of-order callbacks, and a completion arriving after a newer job was dispatched, asserting the newer state survives",
+    "Store the base version with a draft and warn or drop it when the server version moved; key trackers by entity id so a resume event applies idempotently"
    ],
    "portable": true,
    "exemplars": []
@@ -2517,6 +2540,71 @@
     "Build the scoped command from every runner's specs tagged to the case and assert the executed count matches the tagged count",
     "Make result pushes idempotent on an external run id and assert one run per ticket round",
     "After a push, read the run back: totals, executed vs skipped, evidence count, and compare them with the runner's own summary"
+   ],
+   "portable": true
+  },
+  "FS-107": {
+   "name": "New obligation or notification enabled by default for existing callers",
+   "family": "contract-logic",
+   "moment": "plan",
+   "mechanism": "A finalize step, a new notification type or a new background check becomes active by default for every caller or existing user: a pending obligation (an expected upload, an acknowledgement) that a timer later escalates, or a new event that a stored wildcard preference or master switch opts everyone into. Callers that never intended to take part create stalled records, false alarms and auto-filed tickets, or existing users start receiving messages they never asked for. Opt-out defaults hide it until the timer fires or the deploy reaches production.",
+   "trigger_signals": [
+    "a finalize, close or submit step that creates a pending record a sweeper later escalates or notifies on",
+    "a boolean like *_expected / *_required defaulting to true, or inferred from weak signals",
+    "a new notification or event type evaluated against stored wildcard or master-switch preferences ({*: true})"
+   ],
+   "preventive_checks": [
+    "Make the obligation opt-in by the caller that will fulfil it; default off",
+    "Test that the plain path (no opt-in) creates nothing pending and never escalates; a late fulfilment may reopen it",
+    "Test an existing user's stored preferences (wildcards, master switch) against the new event and assert the documented default wins"
+   ],
+   "portable": true
+  },
+  "FS-108": {
+   "name": "Non-production deploy acts on production data through a shared store",
+   "family": "deploy-infra",
+   "moment": "implement",
+   "mechanism": "Staging and production share one database, queue or outbox, so any worker, sweep or drain deployed to staging runs against production rows and posts to production integrations (chat, email, webhooks). A new sweep designed as if it runs only at the production deploy releases an accumulated backlog, such as weeks-old messages, to real users the moment staging deploys. Tests run on an isolated DB, so the cross-environment reach shows up only in review or in production.",
+   "trigger_signals": [
+    "a new worker, sweep, drain or reconcile job over a table, queue or outbox that more than one environment reads",
+    "the first run of a new sweep over rows that accumulated before it existed",
+    "an environment whose settings point at another environment's database, broker or integration credentials"
+   ],
+   "preventive_checks": [
+    "Before shipping a worker, list every environment that runs it against the same store and every external endpoint it posts to; gate its side effects to the environment that owns the rows (an environment flag or an owner column)",
+    "Bound the first run: dry-run count the rows it would act on, skip items older than a cutoff, and release any backlog deliberately"
+   ],
+   "portable": true
+  },
+  "FS-109": {
+   "name": "Waiting state with no deadline when its resolver disappears",
+   "family": "contract-logic",
+   "moment": "implement",
+   "mechanism": "A record or process enters a waiting state (pending, updating, held, mismatch) whose only exit is an event from another actor: a watcher, a callback, a renderer or a follow-up flow. When that actor dies, restarts or is never started, nothing moves the state on and it holds forever: a node stops sending heartbeats, a run never settles, a badge says updating indefinitely. Tests always drive the resolver, so the never-resolves path is first exercised live.",
+   "trigger_signals": [
+    "a new pending, held or verifying state that is cleared only by another process, callback or user action",
+    "a hold that suppresses a liveness signal (heartbeat, lease renewal) until a check passes",
+    "a watcher or supervisor process that may be absent after a restart or an upgrade"
+   ],
+   "preventive_checks": [
+    "For every waiting state write down the event that ends it and a deadline that moves it to a reported terminal state (failed, rolled back)",
+    "Test the resolver never arriving: kill the watcher or drop the callback, advance the clock past the deadline, and assert the state ends and liveness resumes"
+   ],
+   "portable": true
+  },
+  "FS-110": {
+   "name": "Admission gate decides on a load sample that lags admitted work",
+   "family": "agent-orchestration",
+   "moment": "dispatch",
+   "mechanism": "A gate admits heavy jobs (parallel agent lanes, test runs, builds) when one instantaneous sample of CPU idle or load looks healthy. Jobs admitted moments earlier have not ramped up yet, so the sample still reads idle and several jobs pass together; when they ramp at once the host thrashes (load far above the core count, agents stall). Background OS work such as file indexing of new checkouts adds to it. Each admission looked correct when it was made.",
+   "trigger_signals": [
+    "an admission or throttle gate that checks current CPU idle, load average or free memory once before starting each job",
+    "jobs that take minutes to reach peak usage (dependency install, server boot, test-suite ramp)",
+    "several queued jobs waiting on the same gate"
+   ],
+   "preventive_checks": [
+    "Count admitted-but-ramping jobs against the budget (a fixed reservation per admission for its ramp window) instead of trusting the live sample alone",
+    "Admit one job at a time with a cooldown about as long as a job's ramp, decide on a sampled window rather than one reading, and keep a hard cap on concurrent heavy jobs"
    ],
    "portable": true
   }

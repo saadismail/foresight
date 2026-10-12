@@ -3,7 +3,7 @@ type: task
 title: Wire a feature across tiers (FE / API / worker): shared fields, params, enums
 tags: [cross-cutting, contract, frontend, backend, api, payload, field, param, enum, shape, wire]
 resource: full-stack-contract
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Task · Wire a feature across tiers (FE / API / worker): shared fields, params, enums
@@ -13,7 +13,7 @@ Cross-tier work where producer and consumer must agree: payload field names, lis
 in-domain: [cross-cutting](../domains/cross-cutting.md)
 
 predicts (incidents while doing this task):
-- [FS-15](../patterns/fs-15.md) Producer and consumer of the same data disagree (20)
+- [FS-15](../patterns/fs-15.md) Producer and consumer of the same data disagree (22)
 - [FS-19](../patterns/fs-19.md) Behavior change leaves dependent tests, drivers and mocks stale (7)
 - [FS-22](../patterns/fs-22.md) Capability built in one layer but never connected to the next (5)
 - [FS-03](../patterns/fs-03.md) Code written against an assumed interface instead of the real one (3)
