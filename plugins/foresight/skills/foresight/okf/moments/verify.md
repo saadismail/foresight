@@ -3,7 +3,7 @@ type: moment
 title: verify
 tags: [tripwire]
 resource: verify
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Moment · verify

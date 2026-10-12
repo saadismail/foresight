@@ -3,7 +3,7 @@ type: moment
 title: test-write
 tags: [tripwire]
 resource: test-write
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Moment · test-write

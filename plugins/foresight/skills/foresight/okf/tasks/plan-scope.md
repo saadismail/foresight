@@ -3,7 +3,7 @@ type: task
 title: Plan or scope work from a requirement, mockup or reference UI
 tags: [cross-cutting, plan, scope, requirement, spec, ticket, acceptance, criteria, mockup, design, parity]
 resource: plan-scope
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Task · Plan or scope work from a requirement, mockup or reference UI

@@ -3,7 +3,7 @@ type: moment
 title: deploy
 tags: [tripwire]
 resource: deploy
-timestamp: 2026-10-08
+timestamp: 2026-10-12
 ---
 
 # Moment · deploy
