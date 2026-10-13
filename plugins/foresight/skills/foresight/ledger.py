@@ -85,9 +85,15 @@ def _new(root: Path) -> dict:
     return {"root": str(root), "state": "active", "created": now, "flags": [], "moments": {}, "log": []}
 
 
-def record_flags(root: Path, query: str, task: str, flags: list[dict], lane: str = "") -> dict:
-    """Add the flags one `match` produced. A flag already open or resolved keeps its state."""
+def record_flags(root: Path, query: str, task: str, flags: list[dict], lane: str = "", branch: str = "") -> dict:
+    """Add the flags one `match` produced. A flag already open or resolved keeps its state.
+
+    `branch` records the git branch a lane delivers on, so `git merge <branch>` can be
+    held until that lane's flags have a disposition (gates.gate_commit).
+    """
     data = load(root) or _new(root)
+    if lane and branch:
+        data.setdefault("lanes", {})[lane] = {"branch": branch}
     known = {(f["id"], f.get("lane", "")) for f in data["flags"]}
     for f in flags:
         key = (f["id"], lane)
@@ -138,6 +144,23 @@ def open_flags(data: dict | None, lane: str | None = None) -> list[dict]:
     return [f for f in data["flags"] if f["status"] == "open" and (lane is None or f.get("lane", "") == lane)]
 
 
+LANE0 = "lane0"
+
+
+def lanes(data: dict | None) -> set[str]:
+    """Parallel lanes flagged in this ledger, lane 0 excluded."""
+    return {f.get("lane", "") for f in (data or {}).get("flags", [])} - {"", LANE0}
+
+
+def lane_for_branch(data: dict | None, ref: str) -> str:
+    """The lane that delivers on `ref` (a branch name or a remote-tracking ref), or ""."""
+    for lane, meta in ((data or {}).get("lanes") or {}).items():
+        b = meta.get("branch", "")
+        if b and (ref == b or ref.endswith("/" + b)):
+            return lane
+    return ""
+
+
 def close(root: Path, reason: str, force: bool) -> dict:
     data = load(root)
     if not data:
@@ -162,7 +185,10 @@ def close(root: Path, reason: str, force: bool) -> dict:
 def brief_block(data: dict, lane: str | None = None) -> str:
     """The verbatim block every dispatched agent prompt must carry."""
     rows = [f for f in data["flags"] if lane is None or f.get("lane", "") in ("", lane)]
-    marker = f"<!-- foresight-brief v1 lane={lane} -->" if lane else "<!-- foresight-brief v1 -->"
+    # root= names the checkout whose ledger owes these guards, so a lane dispatched from
+    # a session opened in another repo is checked against the right ledger.
+    root = f" root={data['root']}" if data.get("root") else ""
+    marker = f"<!-- foresight-brief v1 lane={lane}{root} -->" if lane else f"<!-- foresight-brief v1{root} -->"
     lines = [marker, "FORESIGHT GUARDS - mandatory. Apply each guard, or report it as n/a with a reason:"]
     for f in rows:
         lines.append(f"- [{f['id']}] {f['title']} - guard: {f['guard']}")

@@ -90,3 +90,4 @@ patterns (most frequent first):
 - [FS-96](../patterns/fs-96.md) Extracted document value trusted without a field-format check and an independent control total (2)
 - [FS-104](../patterns/fs-104.md) Smoke or verification write run against a live production target (1)
 - [FS-110](../patterns/fs-110.md) Admission gate decides on a load sample that lags admitted work (1)
+- [FS-111](../patterns/fs-111.md) Branches merged inside a worktree that a running dev stack serves (1)

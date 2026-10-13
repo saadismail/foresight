@@ -98,22 +98,34 @@ Rules, with no exceptions for small changes or time pressure:
    dispatch needs `dispatch`.
 4. **Abandoning is explicit.** `fs.py close --force "<reason>"` archives open flags on the
    record. It is the user's call, not a shortcut.
+5. **The ledger belongs to the repo the work lands in.** When the session runs in one
+   checkout but the change lands in another (an integration worktree, a sibling repo),
+   pass `--root <that checkout>` (or set `FORESIGHT_ROOT`) to every `match`, `brief`,
+   `resolve`, `status` and `moment`. The brief then carries `root=`, and the gates check
+   that ledger, so unrelated flags from the session's checkout never leak into briefs.
 
 With the gates installed (`./install.sh --hooks`, or the plugin's `hooks/hooks.json`),
-Claude Code enforces this: dispatch is refused without the verbatim brief and the
-dispatch tripwire; `git commit` / `git push` / `gh pr create|merge` are refused while a
-flag is open or a required tripwire was skipped; ending the turn with open flags is
-refused once. Nothing is enforced while nothing is flagged, and an unreadable ledger
-fails closed.
+Claude Code enforces this:
+- dispatch is refused without the verbatim brief and the dispatch tripwire, and, once two
+  or more lanes are flagged, until lane 0 is flagged and resolved (section 3);
+- `git push` / `gh pr create|merge` are refused while any flag is open or a required
+  tripwire was skipped; `git commit` only waits for lane-less and lane-0 flags, so the
+  integration branch can take commits while lanes run;
+- `git merge <lane branch>` is refused until that lane's flags have a disposition;
+- `git merge|pull|rebase|cherry-pick|am` is refused inside a checkout that a listening
+  server runs from (`--ff-only`, `--abort`, `--continue` pass) (FS-111);
+- ending the turn with open flags is refused once.
+
+Nothing is enforced while nothing is flagged, and an unreadable ledger fails closed.
 
 ## 2. Tripwires: re-open the moment node when you get there
 
 | Moment | Open | When |
 |---|---|---|
-| `dispatch` | `fs.py moment dispatch` | before fanning out to subagents, background agents or worktrees; paste `fs.py brief` verbatim into each agent's prompt; for 2+ lanes, section 3 first |
+| `dispatch` | `fs.py moment dispatch` | before fanning out to subagents, background agents or worktrees; paste `fs.py brief` verbatim into each agent's prompt; for 2+ lanes, lane 0 first (section 3) |
 | `test-write` | `fs.py moment test-write` | before writing e2e specs, mocks or fixtures |
 | `verify` | `fs.py moment verify` | before trusting any red or green result |
-| `merge` | `fs.py moment merge` | before a commit, merge, cherry-pick or consolidation |
+| `merge` | `fs.py moment merge` | before a commit, merge, cherry-pick or consolidation; merge lanes outside the served tree |
 | `deploy` | `fs.py moment deploy` | before deploying, or saying merged / deployed / live |
 
 ## 3. Parallel-lane plans: build shared guards first
@@ -131,12 +143,28 @@ into a **lane 0** that runs on the base branch before any lane starts:
 | Spec-size seed + strict gates | Seed at the spec's scale, refresh planner stats, gate at the page size actually served, no slack. Lanes run them from their first perf-sensitive task. | FS-06 |
 | Contract parity | Client types generated from the API schema, or a parity test. | FS-39 / FS-15 |
 
+**Lane 0 is your own work, so it gets its own brief** (gate-enforced): before dispatching
+two or more lanes, run `fs.py match --lane lane0 "<shared setup: tooling, configs, fixtures,
+helpers>"`, apply each guard while you write that setup (not afterwards), and resolve every
+lane0 flag. Shared tooling you write for lanes is code: a dir, port or env-var name chosen
+without grepping the repo's convention is inherited by every lane (FS-23).
+
+**Keep the served tree and the merge tree apart** (gate-enforced, FS-111): when lanes are
+verified against one shared running stack, that stack runs from a *served* worktree that only
+ever fast-forwards. Merge lanes in a separate integration worktree, dry-run each merge first
+(`git merge-tree --write-tree HEAD <branch>`), resolve conflicts in the lane's worktree, run
+the scoped tests, then `git -C <served> merge --ff-only <integration branch>`.
+
 Then, for the rest of the plan:
 
-1. **Brief per lane.** Run `fs.py match --lane <name> "<lane work>"` for each lane and paste
-   `fs.py brief --lane <name>` verbatim into its dispatch prompt (section 1b).
-2. **Lanes merge only when green on their own branch:** their own e2e specs plus scoped
-   unit tests (FS-04).
+1. **Brief per lane.** Run `fs.py match --lane <name> --branch <lane branch> "<lane work>"`
+   for each lane and paste `fs.py brief --lane <name>` verbatim into its dispatch prompt
+   (section 1b). `--branch` lets the gate hold `git merge <branch>` until that lane is done.
+2. **Lanes merge only when green on their own branch** (their own e2e specs plus scoped
+   unit tests, FS-04) **and resolved:** record each guard's disposition from the lane's
+   report with `fs.py resolve <ID> applied|na "<evidence>" --lane <name>` at merge time,
+   not in one batch before the PR. After each merge, re-run the earlier lanes' specs that
+   share helpers with it.
 3. **Merge the base branch into the integration branch every wave** and re-run scoped
    tests. A base change can break integration with no textual conflict.
 4. **Real inputs at plan time.** Get a real sample document or data file before
@@ -174,4 +202,7 @@ transcripts (IDE and cloud agents), into new or sharper graph nodes.
 | "It pushed, so it's live" | Automation silently doesn't fire. Check the SHA on the target. |
 | "Each lane can handle its own locking / scoping / bad input" | Each lane rediscovers it in review, one fix wave at a time. Build the lane-0 guard once. |
 | "Merge the lane, we'll test on integration" | Integration then carries every lane's red at once. Lanes merge green. |
+| "Lane 0 is just setup, not a code change" | Every lane inherits it. Brief it (`--lane lane0`) and apply the guards while writing it. |
+| "I'll resolve all the lane flags before the PR" | Batch resolution turns guards into paperwork. Resolve each lane when it merges. |
+| "Quick merge here, the server will reload" | A conflict hot-reloads into the stack every agent verifies against. Merge elsewhere, then fast-forward. |
 | "Re-run the full suite to be sure" | Full reruns were a third of agent time in one epic. Scoped runs; one full run before the PR. |
