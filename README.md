@@ -85,9 +85,14 @@ so Claude Code enforces it:
 ./install.sh --claude --hooks     # merges three hooks into ~/.claude/settings.json (backed up first)
 ```
 
-- **dispatch** (`PreToolUse` Agent/Task): the prompt must carry every flagged guard verbatim, and `fs.py moment dispatch` must have been opened.
-- **commit** (`PreToolUse` Bash): `git commit` / `git push` / `gh pr create|merge` are refused while a flag is open, or while the `verify` / `merge` (and for merges, `deploy`) tripwires were skipped.
+- **dispatch** (`PreToolUse` Agent/Task): the prompt must carry every flagged guard verbatim, and `fs.py moment dispatch` must have been opened. Once two or more lanes are flagged, no lane is dispatched until **lane 0** (`fs.py match --lane lane0 ...`, the shared setup) is flagged and resolved.
+- **commit** (`PreToolUse` Bash):
+  - `git push` / `gh pr create|merge` are refused while any flag is open, or while the `verify` / `merge` (and for merges, `deploy`) tripwires were skipped; `git commit` waits only for lane-less and lane-0 flags, so an integration branch can take commits while lanes run.
+  - `git merge <branch>` is refused while the lane that delivers on that branch (`fs.py match --lane X --branch <branch>`) has open flags: each lane is resolved when it merges, not in one batch.
+  - `git merge|pull|rebase|cherry-pick|am` is refused in a checkout that a listening server runs from (found with `lsof`); `--ff-only`, `--abort`, `--continue` pass. Merge in a separate integration worktree, then fast-forward the served one (FS-111).
 - **stop**: ending the turn with open flags is refused once.
+
+**Work landing in another checkout.** Every ledger command takes `--root <path>` (or `FORESIGHT_ROOT`): the session can run in one repo while the flags, briefs and gates follow the repo the change lands in. Briefs carry `root=`, so the dispatch gate checks the right ledger.
 
 Nothing is enforced while nothing is flagged. An unreadable ledger fails closed.
 `python3 plugins/foresight/hooks/install_hooks.py --uninstall` removes the gates.

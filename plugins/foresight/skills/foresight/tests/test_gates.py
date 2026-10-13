@@ -164,9 +164,16 @@ class GateContract(unittest.TestCase):
         self.fs("moment", "dispatch")
         self.assertEqual(self.gate("dispatch", payload), {})
 
+    def lane0(self) -> None:
+        self.assertIn("FLAGGED", self.fs("match", "--lane", "lane0", "widget list page shared setup").stdout)
+        for fid in ("FS-01", "FS-02"):
+            r = self.fs("resolve", fid, "applied", "lane-0 shared guard built on the base branch", "--lane", "lane0")
+            self.assertEqual(r.returncode, 0, r.stderr)
+
     def test_parallel_lanes_dispatch_with_their_own_brief(self) -> None:
         self.assertIn("FLAGGED", self.fs("match", "--lane", "a", "widget list page with pagination").stdout)
         self.assertIn("FLAGGED", self.fs("match", "--lane", "b", "other widget thing").stdout)
+        self.lane0()
         self.fs("moment", "dispatch")
         for lane, mine, other in (("a", "FS-01", "FS-03"), ("b", "FS-03", "FS-01")):
             brief = self.fs("brief", "--lane", lane).stdout
@@ -177,8 +184,94 @@ class GateContract(unittest.TestCase):
             self.assertEqual(self.gate("dispatch", payload), {}, f"lane {lane} brief must be enough")
         # Lane flags are the dispatched agents' to report: stop does not block on them...
         self.assertEqual(self.gate("stop", {"cwd": str(self.repo)}), {})
-        # ...but nothing commits until every lane's flags have a disposition.
-        self.assertIn("FS-03", self.denied(self.bash("git commit -m x")))
+        # ...the integration branch may commit while lanes run, but nothing is pushed or
+        # PR'd until every lane's flags have a disposition.
+        self.fs("moment", "verify")
+        self.fs("moment", "merge")
+        self.assertEqual(self.bash("git commit -m x"), {})
+        self.assertIn("FS-03", self.denied(self.bash("git push origin integ")))
+        self.assertIn("FS-03", self.denied(self.bash("gh pr create --base staging")))
+
+    # -- lane 0 is binding before parallel dispatch ----------------------------
+    def test_lane0_required_before_two_or_more_lanes_dispatch(self) -> None:
+        self.fs("match", "--lane", "a", "widget list page with pagination")
+        self.fs("match", "--lane", "b", "other widget thing")
+        self.fs("moment", "dispatch")
+        payload = {"tool_name": "Agent", "cwd": str(self.repo),
+                   "tool_input": {"prompt": "Lane a.\n" + self.fs("brief", "--lane", "a").stdout}}
+        self.assertIn("lane0", self.denied(self.gate("dispatch", payload)))
+        self.fs("match", "--lane", "lane0", "widget list page shared setup")
+        self.assertIn("lane0", self.denied(self.gate("dispatch", payload)), "lane 0 must be resolved, not just flagged")
+        self.lane0()
+        payload["tool_input"]["prompt"] = "Lane a.\n" + self.fs("brief", "--lane", "a").stdout
+        self.assertEqual(self.gate("dispatch", payload), {})
+
+    def test_single_lane_needs_no_lane0(self) -> None:
+        self.fs("match", "--lane", "a", "widget list page with pagination")
+        self.fs("moment", "dispatch")
+        payload = {"tool_name": "Agent", "cwd": str(self.repo),
+                   "tool_input": {"prompt": "Lane a.\n" + self.fs("brief", "--lane", "a").stdout}}
+        self.assertEqual(self.gate("dispatch", payload), {})
+
+    # -- the ledger follows the target repo, not the session -------------------
+    def test_root_option_targets_another_checkout(self) -> None:
+        other = self.tmp / "other"
+        other.mkdir()
+        subprocess.run(["git", "init", "-q", str(other)], check=True)
+        self.flag()  # the session repo has unrelated open flags
+        self.assertIn("FLAGGED", self.fs("match", "--root", str(other), "--lane", "x", "other widget thing").stdout)
+        self.assertIn("FS-03", self.fs("status", "--root", str(other)).stdout)
+        self.assertNotIn("FS-03", self.fs("status").stdout)
+        self.fs("moment", "dispatch", "--root", str(other))
+        brief = self.fs("brief", "--root", str(other), "--lane", "x").stdout
+        self.assertIn(f"root={other.resolve()}", brief)
+        payload = {"tool_name": "Agent", "cwd": str(self.repo), "tool_input": {"prompt": "Lane x.\n" + brief}}
+        self.assertEqual(self.gate("dispatch", payload), {}, "session flags must not be owed by another repo's lane")
+        env = dict(self.env, FORESIGHT_ROOT=str(other))
+        r = subprocess.run([sys.executable, str(FS), "resolve", "FS-03", "na", "unrelated to this exercise entirely",
+                            "--lane", "x"], text=True, capture_output=True, cwd=str(self.repo), env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    # -- a lane merges only when its own guards are resolved -------------------
+    def _branch(self, name: str) -> None:
+        g = ["git", "-C", str(self.repo), "-c", "user.email=t@t", "-c", "user.name=t"]
+        subprocess.run(g + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
+        subprocess.run(g + ["branch", name], check=True)
+
+    def test_lane_merge_refused_until_that_lane_is_resolved(self) -> None:
+        self._branch("lane-a")
+        self.fs("match", "--lane", "a", "--branch", "lane-a", "widget list page with pagination")
+        self.fs("match", "--lane", "b", "--branch", "lane-b", "other widget thing")
+        self.fs("moment", "merge")
+        reason = self.denied(self.bash("git merge --no-ff lane-a -m 'merge lane a'"))
+        self.assertIn("lane a", reason)
+        self.assertIn("FS-01", reason)
+        self.assertNotIn("FS-03", reason, "lane b's open flags must not block lane a")
+        for fid in ("FS-01", "FS-02"):
+            self.fs("resolve", fid, "applied", "lane a report: test_widget_roundtrip green", "--lane", "a")
+        self.assertEqual(self.bash("git merge --no-ff lane-a -m 'merge lane a'"), {})
+
+    # -- never merge inside a tree a running server is serving -----------------
+    def test_merge_refused_in_a_served_worktree(self) -> None:
+        import shutil
+        import time
+        if not shutil.which("lsof"):
+            self.skipTest("lsof not available")
+        self.flag()
+        self.resolve_all()
+        self.fs("moment", "merge")
+        srv = subprocess.Popen([sys.executable, "-m", "http.server", "0", "--bind", "127.0.0.1"], cwd=str(self.repo),
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            time.sleep(1.0)
+            for cmd in ("git merge feature", "git pull origin integ", "git rebase main", "git cherry-pick abc123"):
+                self.assertIn("serv", self.denied(self.bash(cmd)), cmd)
+            for cmd in ("git merge --ff-only feature", "git pull --ff-only origin integ", "git merge --abort"):
+                self.assertEqual(self.bash(cmd), {}, cmd)
+        finally:
+            srv.terminate()
+            srv.wait()
+        self.assertEqual(self.bash("git merge feature"), {}, "no server, no refusal")
 
     # -- stop gate -------------------------------------------------------------
     def test_stop_blocks_once_then_only_reports(self) -> None:

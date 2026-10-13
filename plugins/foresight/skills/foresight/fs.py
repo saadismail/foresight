@@ -8,7 +8,11 @@
 
 Binding guards (the ledger; see ledger.py / gates.py):
   match records the top task's predictions as flags for this checkout
-  [--lane <name>] tags them for one parallel lane; [--no-record] only prints.
+  [--lane <name>] tags them for one parallel lane; [--branch <b>] records the lane's branch
+  (`git merge <b>` waits for that lane's flags); [--no-record] only prints.
+  Every ledger command takes [--root <path>] (or $FORESIGHT_ROOT): the checkout the work
+  lands in, when the session runs elsewhere. Lane 0 (`--lane lane0`) holds the shared
+  guards and must be resolved before 2+ lanes are dispatched.
   fs.py brief [--lane <name>]                 # verbatim block for every agent prompt
   fs.py resolve FS-13 applied "<evidence>"    # the guard ran: test / command / file
   fs.py resolve FS-13 na "<reason>"           # does not apply to this change, and why
@@ -41,9 +45,13 @@ TOOL_DIRS = (".foresight", ".claude/foresight", ".cursor/foresight")  # tool-neu
 PRIVATE = [Path.home() / d / "okf" for d in TOOL_DIRS]
 
 
+OVERLAY_ROOT: Path | None = None  # set from --root / $FORESIGHT_ROOT: the target repo's overlay wins
+
+
 def bundles() -> list[Path]:
     cands = [os.environ.get("FORESIGHT_OKF", "")]
-    cands += [str(Path.cwd() / d / "okf") for d in TOOL_DIRS]
+    for base in dict.fromkeys(p for p in (OVERLAY_ROOT, Path.cwd()) if p):
+        cands += [str(base / d / "okf") for d in TOOL_DIRS]
     cands += [str(p) for p in PRIVATE]
     cands.append(str(HERE / "okf"))
     seen: set[Path] = set()
@@ -80,7 +88,7 @@ def words(s: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", s.lower()) if w not in STOP and len(w) > 2}
 
 
-def match(query: str, lane: str = "", record: bool = True) -> None:
+def match(query: str, lane: str = "", record: bool = True, root: Path | None = None, branch: str = "") -> None:
     q = words(query)
     scored = []
     for b in bundles():
@@ -109,9 +117,9 @@ def match(query: str, lane: str = "", record: bool = True) -> None:
                     flags.append({"id": fid, "title": m.group(2).strip(), "guard": guard})
         print()
     if record and flags:
-        root = ledger.toplevel()
+        root = root or ledger.toplevel()
         try:
-            data = ledger.record_flags(root, query, top[0][2].stem, flags, lane)
+            data = ledger.record_flags(root, query, top[0][2].stem, flags, lane, branch)
         except ledger.LedgerError as exc:
             print(f"LEDGER ERROR: {exc}")
             return
@@ -148,8 +156,14 @@ def _opt(args: list[str], name: str) -> tuple[str, list[str]]:
     return "", args
 
 
-def status(strict: bool) -> int:
-    root = ledger.toplevel()
+def _root(args: list[str]) -> tuple[Path, list[str]]:
+    """--root <path> (or $FORESIGHT_ROOT): the checkout whose ledger this command uses."""
+    val, args = _opt(args, "--root")
+    return ledger.toplevel(val or os.environ.get("FORESIGHT_ROOT") or None), args
+
+
+def status(strict: bool, root: Path | None = None) -> int:
+    root = root or ledger.toplevel()
     try:
         data = ledger.load(root)
     except ledger.LedgerError as exc:
@@ -173,32 +187,36 @@ def main() -> None:
         print(__doc__)
         return
     cmd, args = sys.argv[1], sys.argv[2:]
+    root, args = _root(args)
+    global OVERLAY_ROOT
+    OVERLAY_ROOT = root
     if cmd == "match":
         lane, args = _opt(args, "--lane")
+        branch, args = _opt(args, "--branch")
         record = "--no-record" not in args
-        match(" ".join(a for a in args if a != "--no-record"), lane, record)
+        match(" ".join(a for a in args if a != "--no-record"), lane, record, root, branch)
     elif cmd == "show":
         show(args)
     elif cmd == "brief":
         lane, _ = _opt(args, "--lane")
-        data = ledger.load(ledger.toplevel())
+        data = ledger.load(root)
         print(ledger.brief_block(data, lane or None) if data else "nothing flagged here: run `fs.py match` first")
     elif cmd == "resolve":
         lane, args = _opt(args, "--lane")
         if len(args) < 3:
-            sys.exit('usage: fs.py resolve <ID> applied|na "<evidence or reason>" [--lane <name>]')
+            sys.exit('usage: fs.py resolve <ID> applied|na "<evidence or reason>" [--lane <name>] [--root <path>]')
         try:
-            ledger.resolve(ledger.toplevel(), args[0], args[1], " ".join(args[2:]), lane)
+            ledger.resolve(root, args[0], args[1], " ".join(args[2:]), lane)
         except (ValueError, ledger.LedgerError) as exc:
             sys.exit(f"not resolved: {exc}")
-        sys.exit(status(False))
+        sys.exit(status(False, root))
     elif cmd == "status":
-        sys.exit(status("--strict" in args))
+        sys.exit(status("--strict" in args, root))
     elif cmd == "close":
         force = "--force" in args
         reason = " ".join(a for a in args if a != "--force")
         try:
-            data = ledger.close(ledger.toplevel(), reason, force)
+            data = ledger.close(root, reason, force)
         except (ValueError, ledger.LedgerError) as exc:
             sys.exit(f"not closed: {exc}")
         print(f"ledger closed; abandoned on record: {', '.join(data['closed']['abandoned']) or 'none'}")
@@ -212,7 +230,7 @@ def main() -> None:
             if (b / name).exists():
                 print((b / name).read_text())
                 if cmd == "moment" and args:
-                    ledger.visit(ledger.toplevel(), args[0])
+                    ledger.visit(root, args[0])
                 break
     else:
         print(__doc__)
